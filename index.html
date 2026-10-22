@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruleta Esports Clan Picker & Team Maker</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Google Fonts: Chakra Petch & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            title: ['"Chakra Petch"', 'sans-serif'],
+            body: ['"Inter"', 'sans-serif'],
+          },
+          colors: {
+            gamer: {
+              950: '#070a12',
+              900: '#0d1322',
+              850: '#131b2e',
+              800: '#1b253d',
+              700: '#253554',
+              600: '#384d7a',
+              cyan: '#00f0ff',
+              pink: '#ff0055',
+              amber: '#f59e0b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 10%, #15213b 0%, #070a12 100%);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      color: #e2e8f0;
+    }
+
+    .font-esports {
+      font-family: 'Chakra Petch', sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    .neon-panel {
+      background: rgba(13, 19, 34, 0.92);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 14px 38px -8px rgba(0, 0, 0, 0.75);
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090e18;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #253554;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #00f0ff;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.7) translateY(24px); opacity: 0; }
+      75% { transform: scale(1.03) translateY(-3px); opacity: 1; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.6), inset 0 0 12px rgba(0, 240, 255, 0.3); }
+      50% { box-shadow: 0 0 32px rgba(255, 0, 85, 0.75), inset 0 0 18px rgba(255, 0, 85, 0.4); }
+    }
+    .spin-btn-glow {
+      animation: pulseGlow 2.4s infinite alternate;
+    }
+
+    @keyframes needleJiggle {
+      0% { transform: translateX(-50%) rotate(0deg); }
+      30% { transform: translateX(-50%) rotate(-14deg); }
+      70% { transform: translateX(-50%) rotate(10deg); }
+      100% { transform: translateX(-50%) rotate(0deg); }
+    }
+    .needle-hit {
+      animation: needleJiggle 0.12s ease-in-out;
+    }
+
+    @keyframes slideRightIn {
+      from { opacity: 0; transform: translateX(-15px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .animate-slide-in {
+      animation: slideRightIn 0.22s ease-out forwards;
+    }
+  </style>
+</head>
+
+<body class="p-3 md:p-6 text-gray-100 flex flex-col justify-between">
+
+  <!-- Header Section -->
+  <header class="max-w-7xl mx-auto w-full mb-4 flex flex-wrap items-center justify-between gap-4 border-b border-gray-800/80 pb-3">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25">
+        <i data-lucide="crosshair" class="w-7 h-7"></i>
+      </div>
+      <div>
+        <h1 class="text-2xl md:text-3xl font-extrabold font-esports text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-pink-500 tracking-wider">
+          CLAN DRAFT WHEEL &amp; TEAM MAKER
+        </h1>
+        <p class="text-xs text-gray-400 font-medium">Equipos Ilimitados, Paleta Esports de 20 Colores y Autorelleno Inteligente</p>
+      </div>
+    </div>
+
+    <!-- Quick Status Bar -->
+    <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+      <div class="bg-gamer-900 border border-gray-700/80 rounded-xl px-3 py-1.5 flex items-center gap-2">
+        <i data-lucide="users" class="w-4 h-4 text-cyan-400"></i>
+        <span class="text-xs uppercase text-gray-400 font-semibold tracking-wider">En Ruleta:</span>
+        <span id="badge-remaining" class="font-esports font-bold text-sm text-cyan-300">10</span>
+      </div>
+
+      <div class="bg-gamer-900 border border-gray-700/80 rounded-xl px-3 py-1.5 flex items-center gap-2">
+        <i data-lucide="shield" class="w-4 h-4 text-pink-400"></i>
+        <span class="text-xs uppercase text-gray-400 font-semibold tracking-wider">Equipos:</span>
+        <span id="badge-teams-count" class="font-esports font-bold text-sm text-pink-300">2</span>
+      </div>
+
+      <button id="btn-sound-toggle" class="bg-gamer-900 hover:bg-gamer-850 border border-gray-700 rounded-xl px-3 py-1.5 text-xs text-gray-300 transition flex items-center gap-1.5" title="Activar/Desactivar sonido">
+        <span id="sound-icon-wrap"><i data-lucide="volume-2" class="w-4 h-4 text-cyan-400"></i></span>
+        <span class="hidden sm:inline">Sonido</span>
+      </button>
+
+      <button id="btn-fullscreen" class="bg-gamer-900 hover:bg-gamer-850 border border-gray-700 rounded-xl p-2 text-xs text-gray-300 transition" title="Pantalla completa">
+        <i data-lucide="maximize-2" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Grid Container -->
+  <main class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- LEFT COLUMN: Players & Team Management (4 cols) -->
+    <section class="lg:col-span-4 flex flex-col gap-4">
+
+      <!-- Box 1: Confirmed Players Input -->
+      <div class="neon-panel rounded-2xl p-4 flex flex-col">
+        <div class="flex items-center justify-between mb-2">
+          <label class="font-esports text-sm font-bold text-cyan-400 flex items-center gap-2">
+            <i data-lucide="clipboard-list" class="w-4 h-4"></i> Jugadores Confirmados (<span id="count-input">10</span>)
+          </label>
+          <span class="text-[11px] text-gray-400 font-mono">1 nombre por línea</span>
+        </div>
+        
+        <textarea id="player-input" rows="5" class="w-full bg-gamer-950/90 border border-gray-700/80 rounded-xl p-2.5 text-sm font-mono text-gray-200 focus:outline-none focus:border-cyan-400 transition resize-none placeholder-gray-600">libardo
+kevinr
+ginyac
+Sisas
+Cartor
+Neospartan
+Pinguino
+Espinoza
+Papisilva
+Mimadre</textarea>
+
+        <div class="flex gap-2 mt-2.5">
+          <button id="btn-load-players" class="flex-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 font-esports font-bold py-2 px-3 rounded-xl text-xs text-white transition shadow flex items-center justify-center gap-1.5">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Actualizar Jugadores
+          </button>
+          <button id="btn-shuffle-text" class="bg-gamer-850 hover:bg-gamer-700 border border-gray-700 py-2 px-3 rounded-xl text-xs text-gray-300 transition flex items-center gap-1" title="Barajar lista">
+            <i data-lucide="shuffle" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Box 2: Unlimited Teams Setup -->
+      <div class="neon-panel rounded-2xl p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+          <h2 class="font-esports text-sm font-bold text-pink-400 flex items-center gap-1.5">
+            <i data-lucide="shield-check" class="w-4 h-4"></i> Gestión de Equipos (Ilimitados)
+          </h2>
+          <button id="btn-add-team" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-esports font-bold text-xs py-1 px-2.5 rounded-lg transition flex items-center gap-1 shadow">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Añadir Equipo
+          </button>
+        </div>
+
+        <!-- Mode selection & capacity indicator -->
+        <div>
+          <label class="text-xs text-gray-400 mb-1.5 block font-semibold flex items-center justify-between">
+            <span>Modo de Asignación:</span>
+            <span id="label-cap-info" class="text-[11px] text-cyan-400 font-mono">Cupo: 5 c/u</span>
+          </label>
+          <select id="draft-mode" class="w-full bg-gamer-950 border border-gray-700 rounded-xl px-2.5 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-cyan-400">
+            <option value="fill-first" selected>Llenar equipo por equipo (1° hasta completar, luego 2°...)</option>
+            <option value="round-robin">Alternado Equitativo (Ronda por ronda entre escuadras)</option>
+            <option value="random-slot">Al azar por giro (Cualquier equipo con cupo libre)</option>
+          </select>
+        </div>
+
+        <!-- Dynamic Team Customizers List -->
+        <div class="text-[11px] text-gray-400 font-semibold flex items-center justify-between mt-1">
+          <span>Equipos configurados:</span>
+          <span class="text-[10px] text-gray-500">Color | Nombre | Cupo</span>
+        </div>
+        <div id="team-customizers-container" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+          <!-- Dynamically injected team items -->
+        </div>
+
+        <!-- Force Auto-Fill button -->
+        <button id="btn-force-autofill" class="w-full mt-1 bg-gamer-850 hover:bg-amber-600/30 border border-amber-500/50 text-amber-300 font-esports font-bold py-2 px-3 rounded-xl text-xs transition flex items-center justify-center gap-1.5">
+          <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i> Auto-rellenar restantes ahora
+        </button>
+      </div>
+
+    </section>
+
+    <!-- CENTER COLUMN: Canvas Wheel (5 cols) -->
+    <section class="lg:col-span-5 flex flex-col items-center justify-center neon-panel rounded-2xl p-4 relative overflow-hidden min-h-[500px]">
+      
+      <!-- Top banner & Spin speed selector -->
+      <div class="w-full flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400 px-1 mb-2 z-10">
+        <span id="next-team-indicator" class="flex items-center gap-2 font-esports text-xs bg-gamer-950/90 px-3 py-1 rounded-full border border-gray-700">
+          Siguiente cupo: <strong class="text-blue-500" id="turn-team-label">Equipo Azul</strong>
+        </span>
+
+        <div class="flex items-center gap-2">
+          <span class="text-[11px] text-gray-400">Velocidad:</span>
+          <select id="spin-speed-select" class="bg-gamer-950 border border-gray-700 rounded-lg px-2 py-1 text-[11px] font-bold text-gray-200 focus:outline-none focus:border-cyan-400">
+            <option value="fast">Rápido (2.0s)</option>
+            <option value="normal" selected>Normal (4.0s)</option>
+            <option value="epic">Suspenso Épico (6.5s)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Canvas Wheel Container -->
+      <div class="relative w-full flex items-center justify-center py-2" style="max-width: 440px;">
+        
+        <!-- Wheel Canvas -->
+        <canvas id="wheel-canvas" width="440" height="440" class="w-full max-w-[410px] aspect-square rounded-full shadow-2xl transition duration-300 cursor-pointer"></canvas>
+
+        <!-- Dynamic Arrow / Needle Indicator at Top (12 o'clock) -->
+        <div id="wheel-pointer" class="absolute -top-1 left-1/2 -translate-x-1/2 z-20 pointer-events-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)] transition-transform duration-75">
+          <svg width="42" height="42" viewBox="0 0 40 40">
+            <polygon points="20,38 5,6 35,6" fill="#00f0ff" stroke="#ffffff" stroke-width="2.5" />
+            <circle cx="20" cy="14" r="4.5" fill="#080c14" />
+          </svg>
+        </div>
+
+        <!-- Center Spinner Trigger Hub -->
+        <button id="btn-spin-hub" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-gray-950 via-gamer-900 to-black border-4 border-cyan-400 text-cyan-300 font-esports font-extrabold text-sm md:text-base flex flex-col items-center justify-center transition-all transform hover:scale-105 active:scale-95 spin-btn-glow z-20 cursor-pointer shadow-2xl group">
+          <i data-lucide="play" class="w-6 h-6 group-hover:text-pink-400 transition-colors"></i>
+          <span class="tracking-widest text-[10px] md:text-xs font-black">GIRAR</span>
+        </button>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="w-full flex flex-wrap items-center justify-center gap-2 mt-3 z-10">
+        <button id="btn-spin-action" class="bg-gradient-to-r from-pink-600 via-purple-600 to-cyan-500 hover:from-pink-500 hover:to-cyan-400 text-white font-esports font-black tracking-widest py-2.5 px-6 rounded-xl text-xs md:text-sm transition transform hover:-translate-y-0.5 shadow-lg shadow-pink-600/30 flex items-center gap-1.5">
+          <i data-lucide="dices" class="w-4 h-4"></i> ¡GIRAR RULETA!
+        </button>
+
+        <button id="btn-auto-spin" class="bg-gamer-850 hover:bg-cyan-900/50 border border-cyan-500/50 text-cyan-300 font-esports text-xs font-bold py-2.5 px-4 rounded-xl transition flex items-center gap-1.5">
+          <i data-lucide="play-circle" class="w-4 h-4"></i> Auto-Giro
+        </button>
+
+        <button id="btn-reset-draft" class="bg-gamer-850 hover:bg-red-950/70 border border-gray-700 hover:border-red-600/70 text-gray-300 hover:text-red-300 font-esports text-xs py-2.5 px-3 rounded-xl transition flex items-center gap-1">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reiniciar
+        </button>
+      </div>
+
+      <p class="text-[11px] text-gray-500 mt-2 font-medium">💡 Puedes presionar la [Barra Espaciadora] para girar</p>
+    </section>
+
+    <!-- RIGHT COLUMN: Teams Roster & Export Actions (3 cols) -->
+    <section class="lg:col-span-3 flex flex-col gap-4">
+      
+      <div class="neon-panel rounded-2xl p-4 flex flex-col flex-1">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-2 mb-2.5">
+          <h2 class="font-esports text-sm font-bold text-gray-200 flex items-center gap-1.5">
+            <i data-lucide="shield" class="w-4 h-4 text-cyan-400"></i> Escuadras Formadas
+          </h2>
+          <span id="overall-progress" class="text-xs font-mono text-cyan-400 font-bold">0/10</span>
+        </div>
+
+        <!-- Dynamic List of Team Cards -->
+        <div id="teams-roster-display" class="space-y-2.5 flex-1 overflow-y-auto max-h-[460px] pr-1">
+          <!-- Injected via JS -->
+        </div>
+
+        <!-- Export Buttons -->
+        <div class="pt-3 border-t border-gray-800 space-y-2 mt-2">
+          <button id="btn-copy-discord" class="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-esports text-xs font-bold py-2 px-3 rounded-xl transition shadow flex items-center justify-center gap-2">
+            <i data-lucide="message-square" class="w-4 h-4"></i> Copiar Discord / WhatsApp
+          </button>
+          
+          <button id="btn-export-csv" class="w-full bg-gamer-850 hover:bg-gamer-700 border border-gray-700 text-gray-200 font-esports text-xs font-bold py-2 px-3 rounded-xl transition flex items-center justify-center gap-2">
+            <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i> Descargar Excel (.CSV)
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL 1: INDIVIDUAL WINNER CELEBRATION -->
+  <div id="suspense-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div id="modal-box" class="bg-gamer-900 border-2 border-cyan-400 rounded-3xl p-6 md:p-8 max-w-md w-full text-center relative shadow-[0_0_50px_rgba(0,240,255,0.4)] animate-pop">
+      
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-400 to-pink-500 mx-auto flex items-center justify-center text-white mb-3 shadow-lg">
+        <i data-lucide="trophy" class="w-8 h-8"></i>
+      </div>
+
+      <p class="text-xs uppercase font-esports tracking-widest text-cyan-400 mb-1">¡Seleccionado en Ruleta!</p>
+      
+      <h3 id="modal-player-name" class="text-3xl md:text-4xl font-black font-esports text-white uppercase tracking-wider mb-2 break-words">
+        JUGADOR
+      </h3>
+
+      <div class="py-1 px-4 my-2 inline-block rounded-full bg-gamer-950 border border-gray-700 text-xs text-gray-400">
+        Asignado oficialmente a:
+      </div>
+
+      <div id="modal-team-banner" class="py-3 px-5 rounded-2xl font-esports font-extrabold text-xl md:text-2xl text-white shadow-xl flex items-center justify-center gap-2.5 my-2" style="background-color: #2563EB;">
+        <i data-lucide="shield" class="w-6 h-6"></i>
+        <span id="modal-team-name">EQUIPO AZUL</span>
+      </div>
+
+      <p id="modal-team-quote" class="text-xs text-gray-400 mt-2 mb-3">¡El cupo se asegura para la batalla!</p>
+
+      <!-- Auto-spin progress bar indicator -->
+      <div id="modal-auto-timer-container" class="w-full bg-gamer-950 border border-gray-800 rounded-full h-2 mb-4 overflow-hidden hidden">
+        <div id="modal-auto-timer-bar" class="h-full bg-gradient-to-r from-cyan-400 to-pink-500 w-full"></div>
+      </div>
+
+      <button id="btn-close-modal" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-esports font-bold py-3 rounded-xl transition text-sm tracking-wider uppercase shadow-lg flex items-center justify-center gap-2">
+        <span id="btn-close-modal-text">Continuar Sorteo</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 2: INTELLIGENT AUTO-FILL TRIGGERED -->
+  <div id="autofill-modal" class="fixed inset-0 bg-black/90 backdrop-blur-lg flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-gamer-900 border-2 border-amber-400 rounded-3xl p-6 md:p-8 max-w-lg w-full text-center relative shadow-[0_0_60px_rgba(245,158,11,0.45)] animate-pop">
+      
+      <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-400 via-orange-500 to-red-500 mx-auto flex items-center justify-center text-white mb-4 shadow-xl shadow-amber-500/30">
+        <i data-lucide="zap" class="w-10 h-10"></i>
+      </div>
+
+      <span class="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+        ¡Autorelleno Inteligente Activado!
+      </span>
+
+      <h3 id="autofill-modal-title" class="text-2xl md:text-3xl font-black font-esports text-white uppercase tracking-wider mt-3 mb-2">
+        ¡EQUIPOS COMPLETADOS!
+      </h3>
+
+      <p id="autofill-modal-desc" class="text-sm text-gray-300 mb-4">
+        Los cupos pendientes han sido distribuidos equitativamente respetando la capacidad reglamentaria de cada equipo.
+      </p>
+
+      <!-- Container showing auto-assignments grouped by team -->
+      <div id="autofill-assignments-container" class="space-y-2.5 max-h-56 overflow-y-auto mb-5 text-left pr-1">
+        <!-- Dynamically injected team breakdowns -->
+      </div>
+
+      <button id="btn-close-autofill-modal" class="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-esports font-bold py-3.5 rounded-xl transition text-sm tracking-wider uppercase shadow-lg shadow-amber-500/25">
+        ¡Excelente! Ver Escuadras Finales
+      </button>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed bottom-5 right-5 bg-gamer-900 border border-cyan-400 text-white px-4 py-2.5 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 text-xs font-semibold flex items-center gap-2">
+    <i data-lucide="check-circle" class="w-4 h-4 text-cyan-400"></i>
+    <span id="toast-message">Notificación</span>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    /* ==========================================================================
+       SYNTHETIC AUDIO ENGINE (Web Audio API - Pure synthesis, no external URLs)
+       ========================================================================== */
+    class AudioSynthesizer {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playClick() {
+        if (!this.enabled) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(700, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.03);
+
+          gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.03);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.03);
+        } catch(e) {}
+      }
+
+      playFanfare() {
+        if (!this.enabled) return;
+        this.init();
+        try {
+          const now = this.ctx.currentTime;
+          const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+          notes.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+            gain.gain.setValueAtTime(0.14, now + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start(now + idx * 0.08);
+            osc.stop(now + idx * 0.08 + 0.36);
+          });
+        } catch(e) {}
+      }
+
+      playAutoFillThunder() {
+        if (!this.enabled) return;
+        this.init();
+        try {
+          const now = this.ctx.currentTime;
+          [440, 554.37, 659.25, 880, 1108.73].forEach((f, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(f, now + i * 0.06);
+            gain.gain.setValueAtTime(0.12, now + i * 0.06);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.25);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now + i * 0.06);
+            osc.stop(now + i * 0.06 + 0.26);
+          });
+        } catch(e) {}
+      }
+    }
+
+    const sound = new AudioSynthesizer();
+
+    /* ==========================================================================
+       ESPORTS COLOR PALETTE: FIRST 20 PRESETS + DYNAMIC HARMONIC HSL BEYOND 20
+       ========================================================================== */
+    const PRESET_20_COLORS = [
+      { name: 'Equipo Azul', color: '#2563EB' },       // 1. Azul Eléctrico (Principal)
+      { name: 'Equipo Rojo', color: '#DC2626' },       // 2. Rojo Fuego (Principal)
+      { name: 'Equipo Verde', color: '#16A34A' },      // 3. Verde Esmeralda
+      { name: 'Equipo Dorado', color: '#D97706' },     // 4. Dorado / Ámbar
+      { name: 'Equipo Púrpura', color: '#9333EA' },    // 5. Púrpura
+      { name: 'Equipo Cian', color: '#06B6D4' },       // 6. Cian Neón
+      { name: 'Equipo Naranja', color: '#EA580C' },    // 7. Naranja
+      { name: 'Equipo Rosa', color: '#DB2777' },       // 8. Rosa
+      { name: 'Equipo Lima', color: '#65A30D' },       // 9. Lima Neón
+      { name: 'Equipo Índigo', color: '#4F46E5' },     // 10. Índigo Profundo
+      { name: 'Equipo Esmeralda', color: '#059669' },  // 11. Esmeralda Intenso
+      { name: 'Equipo Ámbar', color: '#B45309' },      // 12. Ámbar Oscuro
+      { name: 'Equipo Violeta', color: '#7C3AED' },    // 13. Violeta Real
+      { name: 'Equipo Fucsia', color: '#C026D3' },     // 14. Fucsia Eléctrico
+      { name: 'Equipo Teal', color: '#0D9488' },       // 15. Teal Océano
+      { name: 'Equipo Rosa Neón', color: '#E11D48' },  // 16. Rosa Neón / Carmesí claro
+      { name: 'Equipo Carmesí', color: '#991B1B' },    // 17. Carmesí
+      { name: 'Equipo Bronce', color: '#854D0E' },     // 18. Bronce
+      { name: 'Equipo Cobalto', color: '#1D4ED8' },    // 19. Cobalto
+      { name: 'Equipo Menta', color: '#047857' }       // 20. Verde Menta Profundo
+    ];
+
+    function getTeamPreset(index) {
+      if (index < PRESET_20_COLORS.length) {
+        return PRESET_20_COLORS[index];
+      }
+      // Dynamic harmonic golden ratio HSL generation for unlimited teams beyond 20
+      const goldenRatio = 0.618033988749895;
+      const hue = Math.floor(((index * goldenRatio) % 1) * 360);
+      const colorHex = hslToHex(hue, 75, 48);
+      return {
+        name: `Equipo ${index + 1}`,
+        color: colorHex
+      };
+    }
+
+    function hslToHex(h, s, l) {
+      s /= 100;
+      l /= 100;
+      const k = n => (n + h / 30) % 12;
+      const a = s * Math.min(l, 1 - l);
+      const f = n =>
+        l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+      const toHex = x => Math.round(x * 255).toString(16).padStart(2, '0');
+      return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+    }
+
+    /* ==========================================================================
+       APPLICATION STATE
+       ========================================================================== */
+    const state = {
+      playersPool: [], // Active remaining players in the wheel
+      allPlayersList: [], // All confirmed players registered
+      teams: [], // [{ id, name, color, targetCap, members: [] }]
+      nextTeamCounter: 2, // Incremental ID generator
+      draftMode: 'fill-first', // 'fill-first' | 'round-robin' | 'random-slot'
+      spinDurationPreset: 4000,
+      isSpinning: false,
+      autoSpinMode: false,
+      currentAngle: 0,
+      lastSelectedPlayer: null,
+      lastAssignedTeam: null,
+      autoSpinTimer: null,
+      autoSpinInterval: null
+    };
+
+    const canvas = document.getElementById('wheel-canvas');
+    const ctx = canvas.getContext('2d');
+    const pointerEl = document.getElementById('wheel-pointer');
+
+    /* ==========================================================================
+       STARTUP & INITIALIZATION
+       ========================================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      initInitialTeams();
+      parsePlayersFromInput();
+      bindEvents();
+      refreshLucide();
+    });
+
+    function refreshLucide() {
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+
+    function initInitialTeams() {
+      state.teams = [];
+      // Initialize 2 default esports teams: Blue & Red
+      for (let i = 0; i < 2; i++) {
+        const preset = getTeamPreset(i);
+        state.teams.push({
+          id: i + 1,
+          name: preset.name,
+          color: preset.color,
+          targetCap: 0,
+          members: []
+        });
+      }
+      state.nextTeamCounter = 3;
+    }
+
+    /* ==========================================================================
+       UNLIMITED TEAMS MANAGEMENT (+ ADD & - DELETE)
+       ========================================================================== */
+    function addTeam() {
+      const newIndex = state.teams.length;
+      const preset = getTeamPreset(newIndex);
+      
+      const newTeam = {
+        id: state.nextTeamCounter++,
+        name: preset.name,
+        color: preset.color,
+        targetCap: 0,
+        members: []
+      };
+
+      state.teams.push(newTeam);
+      calculateCapacities();
+      renderTeamCustomizers();
+      renderTeamsRoster();
+      updateBadges();
+      updateNextTurnIndicator();
+      showToast(`Añadido: ${newTeam.name}`);
+    }
+
+    function removeTeam(teamId) {
+      if (state.teams.length <= 2) {
+        showToast('Se requieren al menos 2 equipos para el torneo');
+        return;
+      }
+
+      const teamIndex = state.teams.findIndex(t => t.id === teamId);
+      if (teamIndex === -1) return;
+
+      const removedTeam = state.teams[teamIndex];
+      // Return any already drafted players from this team back to the pool
+      if (removedTeam.members.length > 0) {
+        state.playersPool.push(...removedTeam.members);
+      }
+
+      state.teams.splice(teamIndex, 1);
+      calculateCapacities();
+      renderTeamCustomizers();
+      renderTeamsRoster();
+      updateBadges();
+      updateNextTurnIndicator();
+      drawWheel();
+      showToast(`Equipo eliminado. Mínimo restante: ${state.teams.length}`);
+    }
+
+    /* ==========================================================================
+       CAPACITY & DRAFT ENGINE
+       ========================================================================== */
+    function calculateCapacities() {
+      const total = state.allPlayersList.length;
+      const tCount = state.teams.length;
+      if (tCount === 0) return;
+
+      const base = Math.floor(total / tCount);
+      const remainder = total % tCount;
+
+      state.teams.forEach((t, i) => {
+        // Equitable remainder distribution
+        t.targetCap = base + (i < remainder ? 1 : 0);
+      });
+
+      const capSummary = state.teams.map(t => t.targetCap).join(' / ');
+      document.getElementById('label-cap-info').textContent = `Cupos: [${capSummary}]`;
+    }
+
+    function parsePlayersFromInput() {
+      const raw = document.getElementById('player-input').value;
+      const list = raw.split('\n')
+        .map(n => n.trim())
+        .filter(n => n.length > 0);
+
+      state.allPlayersList = [...list];
+      state.playersPool = [...list];
+
+      // Reset team member rosters
+      state.teams.forEach(t => t.members = []);
+
+      calculateCapacities();
+      renderTeamCustomizers();
+      renderTeamsRoster();
+      updateBadges();
+      updateNextTurnIndicator();
+      drawWheel();
+    }
+
+    function updateBadges() {
+      document.getElementById('count-input').textContent = state.allPlayersList.length;
+      document.getElementById('badge-remaining').textContent = state.playersPool.length;
+      document.getElementById('badge-teams-count').textContent = state.teams.length;
+      const assigned = state.allPlayersList.length - state.playersPool.length;
+      document.getElementById('overall-progress').textContent = `${assigned}/${state.allPlayersList.length}`;
+    }
+
+    /* ==========================================================================
+       TEAM CUSTOMIZERS UI
+       ========================================================================== */
+    function renderTeamCustomizers() {
+      const container = document.getElementById('team-customizers-container');
+      container.innerHTML = '';
+
+      state.teams.forEach((team) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-1.5 bg-gamer-950 p-1.5 rounded-xl border border-gray-800';
+        row.innerHTML = `
+          <input type="color" data-team-id="${team.id}" value="${team.color}" class="team-color-picker w-6 h-6 rounded cursor-pointer bg-transparent border-0" title="Personalizar color">
+          <input type="text" data-team-id="${team.id}" value="${team.name}" class="team-name-input flex-1 bg-transparent border-b border-transparent focus:border-cyan-400 text-xs font-esports font-bold text-gray-200 focus:outline-none px-1" />
+          <span class="text-[10px] font-mono text-gray-400 px-1.5 py-0.5 rounded bg-gamer-900 border border-gray-800">
+            <span id="customizer-count-${team.id}">${team.members.length}</span>/${team.targetCap}
+          </span>
+          ${state.teams.length > 2 ? `
+            <button data-team-id="${team.id}" class="btn-remove-team text-gray-500 hover:text-red-400 p-1 rounded transition" title="Eliminar equipo">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          ` : ''}
+        `;
+        container.appendChild(row);
+      });
+
+      // Bind input events
+      container.querySelectorAll('.team-color-picker').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const tId = parseInt(e.target.dataset.teamId, 10);
+          const t = state.teams.find(item => item.id === tId);
+          if (t) {
+            t.color = e.target.value;
+            renderTeamsRoster();
+            updateNextTurnIndicator();
+            drawWheel();
+          }
+        });
+      });
+
+      container.querySelectorAll('.team-name-input').forEach(input => {
+        input.addEventListener('change', (e) => {
+          const tId = parseInt(e.target.dataset.teamId, 10);
+          const t = state.teams.find(item => item.id === tId);
+          if (t) {
+            t.name = e.target.value.trim() || `Equipo ${t.id}`;
+            renderTeamsRoster();
+            updateNextTurnIndicator();
+          }
+        });
+      });
+
+      container.querySelectorAll('.btn-remove-team').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const tId = parseInt(btn.dataset.teamId, 10);
+          removeTeam(tId);
+        });
+      });
+
+      refreshLucide();
+    }
+
+    /* ==========================================================================
+       TARGET TEAM SELECTION (RESPECTING MODES & CAPACITIES)
+       ========================================================================== */
+    function getNextTargetTeam() {
+      const availableTeams = state.teams.filter(t => t.members.length < t.targetCap);
+      if (availableTeams.length === 0) return null;
+
+      if (state.draftMode === 'fill-first') {
+        return availableTeams[0];
+      } 
+      else if (state.draftMode === 'round-robin') {
+        let lowestCount = Infinity;
+        let candidate = availableTeams[0];
+        for (const t of availableTeams) {
+          if (t.members.length < lowestCount) {
+            lowestCount = t.members.length;
+            candidate = t;
+          }
+        }
+        return candidate;
+      } 
+      else {
+        // Random slot
+        const randIndex = Math.floor(Math.random() * availableTeams.length);
+        return availableTeams[randIndex];
+      }
+    }
+
+    function updateNextTurnIndicator() {
+      const nextTeam = getNextTargetTeam();
+      const label = document.getElementById('turn-team-label');
+      if (!nextTeam || state.playersPool.length === 0) {
+        label.textContent = '¡Completado!';
+        label.style.color = '#10b981';
+      } else {
+        label.textContent = nextTeam.name;
+        label.style.color = nextTeam.color;
+      }
+    }
+
+    /* ==========================================================================
+       CANVAS WHEEL RENDERING
+       ========================================================================== */
+    function drawWheel() {
+      const numSegments = state.playersPool.length;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = centerX - 14;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (numSegments === 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = '#0d1322';
+        ctx.fill();
+        ctx.strokeStyle = '#253554';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+
+        ctx.fillStyle = '#10b981';
+        ctx.font = 'bold 20px "Chakra Petch", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('¡TODOS ASIGNADOS!', centerX, centerY - 14);
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '13px "Inter", sans-serif';
+        ctx.fillText('Equipos conformados al 100%', centerX, centerY + 16);
+        ctx.restore();
+        return;
+      }
+
+      const segmentAngle = (2 * Math.PI) / numSegments;
+      const segmentColors = [
+        '#1e293b', '#0f172a', '#1e1b4b', '#312e81', 
+        '#022c22', '#064e3b', '#3b0764', '#581c87',
+        '#450a0a', '#7f1d1d', '#172554', '#1e3a8a'
+      ];
+
+      for (let i = 0; i < numSegments; i++) {
+        const startAngle = state.currentAngle + i * segmentAngle;
+        const endAngle = startAngle + segmentAngle;
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.closePath();
+
+        ctx.fillStyle = segmentColors[i % segmentColors.length];
+        ctx.fill();
+
+        ctx.strokeStyle = '#0d1322';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // Wedge Player Name text
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(startAngle + segmentAngle / 2);
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+
+        let fontSize = 15;
+        if (numSegments > 20) fontSize = 10;
+        else if (numSegments > 14) fontSize = 12;
+        else if (numSegments > 8) fontSize = 14;
+
+        ctx.font = `bold ${fontSize}px "Chakra Petch", sans-serif`;
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(0,0,0,0.85)';
+        ctx.shadowBlur = 4;
+
+        let pName = state.playersPool[i];
+        if (pName.length > 15) pName = pName.substring(0, 13) + '…';
+
+        ctx.fillText(pName, radius - 24, 0);
+        ctx.restore();
+      }
+
+      // Outer Glow Border
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#00f0ff';
+      ctx.shadowColor = '#00f0ff';
+      ctx.shadowBlur = 18;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    /* ==========================================================================
+       SPINNING MECHANICS (Physical Easing Simulation & Needle Jiggle)
+       ========================================================================== */
+    function spinWheel() {
+      if (state.isSpinning) return;
+      if (state.playersPool.length === 0) {
+        showToast('¡Todos los jugadores ya han sido asignados!');
+        state.autoSpinMode = false;
+        updateAutoSpinButton();
+        return;
+      }
+
+      state.isSpinning = true;
+      document.getElementById('btn-spin-action').disabled = true;
+      document.getElementById('btn-spin-hub').classList.remove('spin-btn-glow');
+
+      const segmentAngle = (2 * Math.PI) / state.playersPool.length;
+      const fullRotations = 4 + Math.floor(Math.random() * 4);
+      const randomOffset = Math.random() * (2 * Math.PI);
+      const totalRotation = fullRotations * 2 * Math.PI + randomOffset;
+
+      const duration = state.spinDurationPreset;
+      const startTime = performance.now();
+      const startAngle = state.currentAngle;
+
+      let lastTickSegment = -1;
+
+      function animate(time) {
+        const elapsed = time - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeOut = 1 - Math.pow(1 - progress, 4.2);
+
+        state.currentAngle = startAngle + totalRotation * easeOut;
+        drawWheel();
+
+        // Needle collision calculation (Top arrow is 3*PI/2)
+        const pointerAngle = (3 * Math.PI / 2);
+        let normalizedAngle = (pointerAngle - (state.currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        const currentSegment = Math.floor(normalizedAngle / segmentAngle);
+
+        if (currentSegment !== lastTickSegment) {
+          sound.playClick();
+          pointerEl.classList.remove('needle-hit');
+          void pointerEl.offsetWidth;
+          pointerEl.classList.add('needle-hit');
+          lastTickSegment = currentSegment;
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          finishSingleSpin();
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    /* ==========================================================================
+       FINISH SINGLE SPIN & INTELLIGENT AUTO-FILL TRIGGER
+       ========================================================================== */
+    function finishSingleSpin() {
+      state.isSpinning = false;
+      document.getElementById('btn-spin-action').disabled = false;
+      document.getElementById('btn-spin-hub').classList.add('spin-btn-glow');
+
+      const numSegments = state.playersPool.length;
+      const segmentAngle = (2 * Math.PI) / numSegments;
+      const pointerAngle = (3 * Math.PI / 2);
+
+      let normalizedAngle = (pointerAngle - (state.currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      let winnerIndex = Math.floor(normalizedAngle / segmentAngle);
+      winnerIndex = Math.max(0, Math.min(winnerIndex, numSegments - 1));
+
+      const winnerPlayer = state.playersPool[winnerIndex];
+      const targetTeam = getNextTargetTeam();
+
+      if (!targetTeam) {
+        showToast('Todos los cupos de los equipos están llenos');
+        state.autoSpinMode = false;
+        updateAutoSpinButton();
+        return;
+      }
+
+      // Assign selected player
+      targetTeam.members.push(winnerPlayer);
+      state.playersPool.splice(winnerIndex, 1);
+
+      state.lastSelectedPlayer = winnerPlayer;
+      state.lastAssignedTeam = targetTeam;
+
+      // Audio & Confetti
+      sound.playFanfare();
+      triggerConfetti();
+
+      // Update UI
+      updateBadges();
+      renderTeamsRoster();
+      updateNextTurnIndicator();
+      drawWheel();
+
+      // Check Intelligent Auto-Fill condition:
+      // If only 1 team has open slots remaining and there are players left, trigger auto-fill!
+      const teamsWithOpenSlots = state.teams.filter(t => t.members.length < t.targetCap);
+      const isAutoFillCondition = (teamsWithOpenSlots.length === 1 && state.playersPool.length > 0);
+
+      // ALWAYS show the winner celebration modal, even in Auto-Giro mode
+      openIndividualModal(winnerPlayer, targetTeam, state.autoSpinMode, () => {
+        if (isAutoFillCondition) {
+          state.autoSpinMode = false;
+          updateAutoSpinButton();
+          triggerIntelligentAutoFill();
+        } else if (state.autoSpinMode && state.playersPool.length > 0) {
+          spinWheel();
+        }
+      });
+    }
+
+    /* ==========================================================================
+       INTELLIGENT AUTO-FILL LOGIC (BALANCED QUOTA ENFORCEMENT)
+       ========================================================================== */
+    function triggerIntelligentAutoFill() {
+      if (state.playersPool.length === 0) return;
+
+      // 1. Recalculate and enforce strict target capacities for all teams
+      calculateCapacities();
+
+      // 2. Shuffle remaining players in pool to ensure fairness upon bulk fill
+      const unassigned = [...state.playersPool];
+      for (let i = unassigned.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [unassigned[i], unassigned[j]] = [unassigned[j], unassigned[i]];
+      }
+
+      // 3. Track new additions per team for the celebration summary
+      const assignmentsPerTeam = new Map();
+      state.teams.forEach(t => assignmentsPerTeam.set(t.id, []));
+
+      // 4. Distribute strictly up to each team's capacity limit
+      for (const player of unassigned) {
+        // Find teams that still have vacancies
+        const availableTeams = state.teams.filter(t => t.members.length < t.targetCap);
+
+        let chosenTeam = null;
+        if (availableTeams.length > 0) {
+          if (state.draftMode === 'fill-first') {
+            chosenTeam = availableTeams[0];
+          } else if (state.draftMode === 'round-robin') {
+            // Find team with the fewest members to balance step-by-step
+            let minCount = Infinity;
+            for (const t of availableTeams) {
+              if (t.members.length < minCount) {
+                minCount = t.members.length;
+                chosenTeam = t;
+              }
+            }
+          } else {
+            // Random available slot
+            const randIdx = Math.floor(Math.random() * availableTeams.length);
+            chosenTeam = availableTeams[randIdx];
+          }
+        } else {
+          // If total players exceeded total nominal capacity, assign to team with lowest count
+          let minCount = Infinity;
+          for (const t of state.teams) {
+            if (t.members.length < minCount) {
+              minCount = t.members.length;
+              chosenTeam = t;
+            }
+          }
+          if (!chosenTeam) chosenTeam = state.teams[0];
+        }
+
+        chosenTeam.members.push(player);
+        assignmentsPerTeam.get(chosenTeam.id).push(player);
+      }
+
+      // Empty pool now that all are assigned
+      state.playersPool = [];
+
+      sound.playAutoFillThunder();
+      triggerGrandConfetti();
+
+      updateBadges();
+      renderTeamsRoster();
+      updateNextTurnIndicator();
+      drawWheel();
+
+      // Filter teams that actually received new players during this action
+      const filledGroups = state.teams
+        .map(t => ({ team: t, added: assignmentsPerTeam.get(t.id) }))
+        .filter(entry => entry.added.length > 0);
+
+      openAutoFillModal(filledGroups);
+    }
+
+    function openAutoFillModal(filledGroups) {
+      const modal = document.getElementById('autofill-modal');
+      const titleEl = document.getElementById('autofill-modal-title');
+      const descEl = document.getElementById('autofill-modal-desc');
+      const container = document.getElementById('autofill-assignments-container');
+
+      container.innerHTML = '';
+
+      if (filledGroups.length === 1) {
+        const { team, added } = filledGroups[0];
+        titleEl.textContent = `¡${team.name.toUpperCase()} COMPLETADO!`;
+        descEl.textContent = `Los demás equipos ya llenaron sus cupos. Se transfirieron automáticamente los ${added.length} jugadores restantes a ${team.name}:`;
+      } else {
+        titleEl.textContent = `¡DISTRIBUCIÓN AUTOMÁTICA COMPLETADA!`;
+        descEl.textContent = `Se repartieron los jugadores restantes respetando equitativamente los cupos y la capacidad de cada equipo:`;
+      }
+
+      filledGroups.forEach(({ team, added }, groupIdx) => {
+        const groupCard = document.createElement('div');
+        groupCard.className = 'bg-gamer-950 p-3 rounded-xl border border-gray-800 animate-slide-in';
+        groupCard.style.animationDelay = `${groupIdx * 90}ms`;
+
+        groupCard.innerHTML = `
+          <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-gray-800">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full shadow" style="background-color: ${team.color};"></span>
+              <span class="font-esports font-bold text-xs uppercase text-gray-200">${team.name}</span>
+            </div>
+            <span class="text-[11px] font-mono font-bold text-amber-400">+${added.length} añadidos (${team.members.length}/${team.targetCap})</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            ${added.map(p => `
+              <span class="px-2 py-0.5 rounded-md bg-gamer-900 border border-gray-700 text-gray-200 text-xs font-esports font-semibold">
+                ✓ ${p}
+              </span>
+            `).join('')}
+          </div>
+        `;
+        container.appendChild(groupCard);
+      });
+
+      modal.classList.remove('hidden');
+      refreshLucide();
+    }
+
+    function closeAutoFillModal() {
+      document.getElementById('autofill-modal').classList.add('hidden');
+    }
+
+    /* ==========================================================================
+       CONFETTI VISUALS
+       ========================================================================== */
+    function triggerConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 75,
+          spread: 70,
+          origin: { y: 0.65 },
+          colors: ['#00f0ff', '#ff0055', '#f59e0b', '#10b981', '#3b82f6']
+        });
+      }
+    }
+
+    function triggerGrandConfetti() {
+      if (typeof confetti === 'function') {
+        const duration = 2.5 * 1000;
+        const end = Date.now() + duration;
+
+        (function frame() {
+          confetti({
+            particleCount: 6,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors: ['#f59e0b', '#ef4444', '#00f0ff']
+          });
+          confetti({
+            particleCount: 6,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors: ['#10b981', '#3b82f6', '#ff0055']
+          });
+
+          if (Date.now() < end) {
+            requestAnimationFrame(frame);
+          }
+        }());
+      }
+    }
+
+    /* ==========================================================================
+       INDIVIDUAL WINNER MODAL
+       ========================================================================== */
+    function clearAutoSpinTimers() {
+      if (state.autoSpinTimer) {
+        clearTimeout(state.autoSpinTimer);
+        state.autoSpinTimer = null;
+      }
+      if (state.autoSpinInterval) {
+        clearInterval(state.autoSpinInterval);
+        state.autoSpinInterval = null;
+      }
+    }
+
+    function openIndividualModal(player, team, isAutoMode, onProceedCallback) {
+      clearAutoSpinTimers();
+
+      const modal = document.getElementById('suspense-modal');
+      const nameEl = document.getElementById('modal-player-name');
+      const teamBanner = document.getElementById('modal-team-banner');
+      const teamNameEl = document.getElementById('modal-team-name');
+      const timerContainer = document.getElementById('modal-auto-timer-container');
+      const timerBar = document.getElementById('modal-auto-timer-bar');
+      const btnClose = document.getElementById('btn-close-modal');
+      const btnText = document.getElementById('btn-close-modal-text');
+
+      nameEl.textContent = player;
+      teamNameEl.textContent = team.name;
+      teamBanner.style.backgroundColor = team.color;
+
+      const proceed = () => {
+        clearAutoSpinTimers();
+        closeIndividualModal();
+        if (typeof onProceedCallback === 'function') {
+          onProceedCallback();
+        }
+      };
+
+      btnClose.onclick = proceed;
+
+      if (isAutoMode) {
+        timerContainer.classList.remove('hidden');
+        btnText.textContent = 'Continuar Ahora (Auto)';
+        
+        const autoDuration = 2200; // 2.2 seconds display
+        const startTime = Date.now();
+        timerBar.style.width = '100%';
+
+        state.autoSpinInterval = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          const remainingPct = Math.max(0, 100 - (elapsed / autoDuration) * 100);
+          timerBar.style.width = `${remainingPct}%`;
+          if (elapsed >= autoDuration) {
+            clearAutoSpinTimers();
+          }
+        }, 30);
+
+        state.autoSpinTimer = setTimeout(() => {
+          proceed();
+        }, autoDuration);
+      } else {
+        timerContainer.classList.add('hidden');
+        btnText.textContent = 'Continuar Sorteo';
+      }
+
+      modal.classList.remove('hidden');
+      refreshLucide();
+    }
+
+    function closeIndividualModal() {
+      clearAutoSpinTimers();
+      document.getElementById('suspense-modal').classList.add('hidden');
+    }
+
+    /* ==========================================================================
+       ROSTER CARDS DISPLAY (RIGHT COLUMN)
+       ========================================================================== */
+    function renderTeamsRoster() {
+      const container = document.getElementById('teams-roster-display');
+      container.innerHTML = '';
+
+      state.teams.forEach(team => {
+        const card = document.createElement('div');
+        card.className = 'bg-gamer-950/90 rounded-2xl p-3 border-l-4 transition hover:bg-gamer-900 shadow-md';
+        card.style.borderLeftColor = team.color;
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center justify-between mb-2';
+        header.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full shadow" style="background-color: ${team.color};"></span>
+            <h4 class="font-esports font-bold text-xs uppercase text-gray-100 tracking-wide">${team.name}</h4>
+          </div>
+          <span class="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-gamer-900 border border-gray-800 text-gray-300">
+            ${team.members.length}/${team.targetCap}
+          </span>
+        `;
+        card.appendChild(header);
+
+        const memberList = document.createElement('div');
+        memberList.className = 'space-y-1';
+
+        if (team.members.length === 0) {
+          memberList.innerHTML = `<p class="text-[11px] text-gray-600 italic py-0.5">Esperando asignaciones...</p>`;
+        } else {
+          team.members.forEach((member, i) => {
+            const item = document.createElement('div');
+            item.className = 'flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-gamer-900/80 border border-gray-800/80 text-gray-200 animate-pop';
+            item.innerHTML = `
+              <span class="font-medium flex items-center gap-1.5">
+                <span class="text-[10px] text-gray-500 font-mono">#${i + 1}</span>
+                <span>${member}</span>
+              </span>
+              <button data-team="${team.id}" data-player="${member}" class="btn-remove-member text-gray-500 hover:text-red-400 text-xs px-1" title="Regresar a la ruleta">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            `;
+            memberList.appendChild(item);
+          });
+        }
+        card.appendChild(memberList);
+        container.appendChild(card);
+      });
+
+      // Bind member return button
+      container.querySelectorAll('.btn-remove-member').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const tId = parseInt(btn.dataset.team, 10);
+          const pName = btn.dataset.player;
+          removePlayerFromTeam(tId, pName);
+        });
+      });
+
+      // Update counters in settings box
+      state.teams.forEach(t => {
+        const span = document.getElementById(`customizer-count-${t.id}`);
+        if (span) span.textContent = t.members.length;
+      });
+
+      refreshLucide();
+    }
+
+    function removePlayerFromTeam(teamId, playerName) {
+      const team = state.teams.find(t => t.id === teamId);
+      if (!team) return;
+
+      const idx = team.members.indexOf(playerName);
+      if (idx !== -1) {
+        team.members.splice(idx, 1);
+        state.playersPool.push(playerName);
+        updateBadges();
+        renderTeamsRoster();
+        updateNextTurnIndicator();
+        drawWheel();
+        showToast(`${playerName} regresado a la ruleta`);
+      }
+    }
+
+    /* ==========================================================================
+       AUTO-SPIN TOGGLE
+       ========================================================================== */
+    function toggleAutoSpin() {
+      state.autoSpinMode = !state.autoSpinMode;
+      updateAutoSpinButton();
+
+      if (!state.autoSpinMode) {
+        // Paused by user: cancel any running countdown timers
+        clearAutoSpinTimers();
+        const btnText = document.getElementById('btn-close-modal-text');
+        if (btnText) btnText.textContent = 'Continuar Sorteo';
+        const timerContainer = document.getElementById('modal-auto-timer-container');
+        if (timerContainer) timerContainer.classList.add('hidden');
+      } else if (!state.isSpinning) {
+        const modal = document.getElementById('suspense-modal');
+        if (modal.classList.contains('hidden') && state.playersPool.length > 0) {
+          spinWheel();
+        }
+      }
+    }
+
+    function updateAutoSpinButton() {
+      const btn = document.getElementById('btn-auto-spin');
+      if (state.autoSpinMode) {
+        btn.className = 'bg-gradient-to-r from-cyan-600 to-pink-600 border border-pink-400 text-white font-esports text-xs font-bold py-2.5 px-4 rounded-xl transition flex items-center gap-1.5 shadow-lg';
+        btn.innerHTML = `<i data-lucide="pause-circle" class="w-4 h-4"></i> Pausar Auto`;
+      } else {
+        btn.className = 'bg-gamer-850 hover:bg-cyan-900/50 border border-cyan-500/50 text-cyan-300 font-esports text-xs font-bold py-2.5 px-4 rounded-xl transition flex items-center gap-1.5';
+        btn.innerHTML = `<i data-lucide="play-circle" class="w-4 h-4"></i> Auto-Giro`;
+      }
+      refreshLucide();
+    }
+
+    /* ==========================================================================
+       EXPORTS: DISCORD/WHATSAPP & EXCEL CSV
+       ========================================================================== */
+    function copyTeamsForDiscord() {
+      if (state.teams.every(t => t.members.length === 0)) {
+        showToast('¡Aún no hay jugadores asignados a los equipos!');
+        return;
+      }
+
+      const teamIcons = ['🔵', '🔴', '🟢', '🟡', '🟣', '🔷', '🔶', '🌸', '🟩', '💠', '🛡️', '⚔️'];
+      let msg = `🏆 **EQUIPOS DEFINIDOS - TORNEO INTERNO** 🏆\n\n`;
+
+      state.teams.forEach((t, i) => {
+        const icon = teamIcons[i % teamIcons.length];
+        msg += `${icon} **${t.name.toUpperCase()}** (${t.members.length}/${t.targetCap} Jugadores):\n`;
+        if (t.members.length === 0) {
+          msg += `  *(Sin integrantes aún)*\n`;
+        } else {
+          t.members.forEach((m, idx) => {
+            msg += `  ${idx + 1}. ${m}\n`;
+          });
+        }
+        msg += `\n`;
+      });
+      msg += `📅 *Generado el: ${new Date().toLocaleDateString()} a las ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}*`;
+
+      const tempArea = document.createElement('textarea');
+      tempArea.value = msg;
+      document.body.appendChild(tempArea);
+      tempArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempArea);
+
+      showToast('¡Copiado para Discord / WhatsApp!');
+    }
+
+    function exportToCSV() {
+      let csv = '\uFEFF'; // UTF-8 BOM for Excel special characters
+      csv += 'Equipo;Numero;Jugador;Fecha\n';
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      state.teams.forEach(t => {
+        t.members.forEach((m, idx) => {
+          csv += `"${t.name}";${idx + 1};"${m}";"${dateStr}"\n`;
+        });
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `torneo_clan_equipos_${dateStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast('Descargando archivo CSV para Excel...');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const text = document.getElementById('toast-message');
+      text.textContent = msg;
+      toast.classList.remove('opacity-0', 'translate-y-20');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-20');
+      }, 2600);
+    }
+
+    /* ==========================================================================
+       CONTROLS & EVENT BINDINGS
+       ========================================================================== */
+    function resetDraft() {
+      state.isSpinning = false;
+      state.autoSpinMode = false;
+      updateAutoSpinButton();
+      parsePlayersFromInput();
+      showToast('Sorteo reiniciado');
+    }
+
+    function shuffleTextarea() {
+      const raw = document.getElementById('player-input').value;
+      const list = raw.split('\n').map(s => s.trim()).filter(Boolean);
+      for (let i = list.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [list[i], list[j]] = [list[j], list[i]];
+      }
+      document.getElementById('player-input').value = list.join('\n');
+      parsePlayersFromInput();
+      showToast('Lista barajada aleatoriamente');
+    }
+
+    function bindEvents() {
+      // Spinning trigger
+      document.getElementById('btn-spin-action').addEventListener('click', spinWheel);
+      document.getElementById('btn-spin-hub').addEventListener('click', spinWheel);
+      canvas.addEventListener('click', spinWheel);
+      document.getElementById('btn-auto-spin').addEventListener('click', toggleAutoSpin);
+
+      // Spacebar
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
+          e.preventDefault();
+          const modal = document.getElementById('suspense-modal');
+          if (!modal.classList.contains('hidden')) {
+            document.getElementById('btn-close-modal').click();
+          } else {
+            spinWheel();
+          }
+        } else if (e.code === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
+          const modal = document.getElementById('suspense-modal');
+          if (!modal.classList.contains('hidden')) {
+            e.preventDefault();
+            document.getElementById('btn-close-modal').click();
+          }
+        }
+      });
+
+      // Player & Team Actions
+      document.getElementById('btn-load-players').addEventListener('click', parsePlayersFromInput);
+      document.getElementById('btn-shuffle-text').addEventListener('click', shuffleTextarea);
+      document.getElementById('btn-reset-draft').addEventListener('click', resetDraft);
+      document.getElementById('btn-add-team').addEventListener('click', addTeam);
+
+      // Force Auto-Fill
+      document.getElementById('btn-force-autofill').addEventListener('click', () => {
+        if (state.playersPool.length === 0) {
+          showToast('No hay jugadores pendientes en la ruleta');
+          return;
+        }
+        triggerIntelligentAutoFill();
+      });
+
+      // Draft mode selector
+      document.getElementById('draft-mode').addEventListener('change', (e) => {
+        state.draftMode = e.target.value;
+        updateNextTurnIndicator();
+      });
+
+      // Spin Speed Selector
+      document.getElementById('spin-speed-select').addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val === 'fast') state.spinDurationPreset = 2000;
+        else if (val === 'epic') state.spinDurationPreset = 6500;
+        else state.spinDurationPreset = 4000;
+      });
+
+      // Exports
+      document.getElementById('btn-copy-discord').addEventListener('click', copyTeamsForDiscord);
+      document.getElementById('btn-export-csv').addEventListener('click', exportToCSV);
+
+      // Modals
+      document.getElementById('btn-close-autofill-modal').addEventListener('click', closeAutoFillModal);
+
+      // Audio Toggle
+      document.getElementById('btn-sound-toggle').addEventListener('click', () => {
+        sound.enabled = !sound.enabled;
+        const wrap = document.getElementById('sound-icon-wrap');
+        if (sound.enabled) {
+          wrap.innerHTML = `<i data-lucide="volume-2" class="w-4 h-4 text-cyan-400"></i>`;
+          showToast('Efectos de sonido activados');
+        } else {
+          wrap.innerHTML = `<i data-lucide="volume-x" class="w-4 h-4 text-gray-500"></i>`;
+          showToast('Sonido silenciado');
+        }
+        refreshLucide();
+      });
+
+      // Fullscreen
+      document.getElementById('btn-fullscreen').addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      });
+    }
+  </script>
+</body>
+</html>
